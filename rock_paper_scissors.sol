@@ -14,13 +14,13 @@ contract RockPaperScissors {
 	bytes32 hashed_move1;
 	bytes32 hashed_move2;
 	// Moves for players 1 and 2. Populated only after the reveal stage.
-	bytes32 move1;
-	bytes32 move2;
+	string move1;
+	string move2;
 	// Fixed reward is 10 million wei. Yeap. It's a lot.
 	uint reward = 10000000;
 	uint claim_timer;
-
-	mapping (bytes32 => mapping (bytes32 => uint8)) game_verdict;
+	bool revealed_answer;
+	mapping (string => mapping (string => uint8)) game_verdict;
 
 	// Initialise contract. Initialize gaming scenarios.
 	function RockPaperScissors() public {
@@ -41,61 +41,73 @@ contract RockPaperScissors {
 
 	// The player provides a hash_move. The game fee is also paid.
 	function move(bytes32 hash_move) public payable {
-		require (msg.value > reward);
+		require (!revealed_answer);
+		require (msg.value >= reward);
 		require (hash_move != 0);
 
-		// Send remaining value back to the address that called this function.
-		msg.sender.transfer(msg.value - reward);
-
-		if (addr1 != 0) {
+		if (addr1 != 0 && addr1 != msg.sender) {
+			msg.sender.transfer(msg.value - reward);
 			addr2 = msg.sender;
 			hashed_move2 = hash_move;
 		} else {
+			msg.sender.transfer(msg.value - reward);
 			addr1 = msg.sender;
 			hashed_move1 = hash_move;
 		}
 	}
 
 	// Player 1 regrets playing or second player hasn't made their move.
-	function get_refund() {
+	function get_refund() public {
 		if (hashed_move1 != 0 && hashed_move2 == 0
 			&& addr1 == msg.sender) {
-			addr1.send(reward);
+			addr1.transfer(reward);
 		}
 	}
 
 	// Require that both players have made their move.
-	function reveal_move(bytes32 p_move, bytes32 h_key) public {
-
-		if (sha256(p_move, h_key) == hashed_move1) {
+	// Returns true if the reveal was successful.
+	function reveal_move(string p_move, string h_key) public returns(bool, uint) {
+		bool valid_reveal = false;
+		bytes32 sha_hash = sha256(p_move, h_key);
+		if (sha_hash == hashed_move1) {
+			valid_reveal = true;
 			move1 = p_move;
-			claim_timer = now + 86400; // one day is seconds.
+			claim_timer = now + 86400; // one day in seconds.
 		}
-		if (sha256(p_move, h_key) == hashed_move2) {
+		if (sha_hash == hashed_move2) {
+			valid_reveal = true;
 			move2 = p_move;
 			claim_timer = now + 86400;
 		}
 
-		// Both players played. Determine the winner.
-		if (move1 != 0 && move2 != 0) {
+		if (!strempty(move1) && !strempty(move2)) {
 			claim_timer = 0;
 			determine_winner(game_verdict[move1][move2]);
 		}
+
+		if (valid_reveal) revealed_answer = true;
+
+		return (valid_reveal, claim_timer);
 	}
 
 	// Claims reward in the case one of the players does not reveal
 	// their move in time. We expect this to happen many times since
 	// in the case where the revealer is winner the loser has no 
 	// reason to reveal their move and spend gas for the transaction.
-	function claim_reward() public {
-		require (claim_timer > now);
-		require (msg.sender == addr1 || msg.sender == addr2);
+	function claim_reward() public returns(bool) {
+		require (claim_timer < now);
 
-		if (move1 != 0) {
+		if (strempty(move1)) {
 			addr1.transfer(2*reward);
+			restartgame();
+			return true;
 		} else {
 			addr2.transfer(2*reward);
+			restartgame();
+			return true;
 		}
+
+		return false;
 	}
 
 	function determine_winner(uint8 result) internal {
@@ -107,5 +119,21 @@ contract RockPaperScissors {
 		} else {
 			addr1.transfer(2*reward);
 		}
+		restartgame();
+	}
+
+	function strempty(string str) internal pure returns(bool) {
+		bytes memory bytes_str = bytes(str);
+		return bytes_str.length == 0;
+	}
+
+	function restartgame() internal {
+		addr1 = 0;
+		addr2 = 0;
+		move1 = "";
+		move2 = "";
+		hashed_move1 = bytes32(0);
+		hashed_move2 = bytes32(0);
+		claim_timer = 0;
 	}
 }

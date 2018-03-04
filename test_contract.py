@@ -9,11 +9,14 @@ from ethereum.tools._solidity import (
     )
 SOLIDITY_AVAILABLE = get_solidity() is not None
 
+def sha256(s):
+    import hashlib
+    return hashlib.sha256(s).digest()
+
 env = config.Env()
 #env.config['BLOCK_GAS_LIMIT'] = 3141592000
 #env.config['START_GAS_LIMIT'] = 3141592000
 s = tester.Chain(env = env)
-# Need to increase the gas limit. These are some large contracts!
 s.mine()
 
 contract_path = './rock_paper_scissors.sol'
@@ -31,5 +34,3 @@ contract_abi = tester.ABIContract(
     s,
     contract_data['abi'],
     contract_address)
-
-#TODO test the contract.

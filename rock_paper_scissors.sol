@@ -72,12 +72,12 @@ contract RockPaperScissors {
 		if (sha_hash == hashed_move1) {
 			valid_reveal = true;
 			move1 = p_move;
-			claim_timer = now + 86400; // one day in seconds.
+			claim_timer = now + 1; // one day in seconds.
 		}
 		if (sha_hash == hashed_move2) {
 			valid_reveal = true;
 			move2 = p_move;
-			claim_timer = now + 86400;
+			claim_timer = now + 1;
 		}
 
 		if (!strempty(move1) && !strempty(move2)) {
@@ -98,7 +98,7 @@ contract RockPaperScissors {
 		require (claim_timer < now);
 
 		if (strempty(move1)) {
-			addr1.transfer(2*reward);
+			addr2.transfer(2*reward);
 			restartgame();
 			return true;
 		} else {

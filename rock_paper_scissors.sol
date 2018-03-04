@@ -42,6 +42,7 @@ contract RockPaperScissors {
 	// The player provides a hash_move. The game fee is also paid.
 	function move(bytes32 hash_move) public payable {
 		require (msg.value > reward);
+		require (hash_move != 0);
 
 		// Send remaining value back to the address that called this function.
 		msg.sender.transfer(msg.value - reward);
@@ -52,6 +53,14 @@ contract RockPaperScissors {
 		} else {
 			addr1 = msg.sender;
 			hashed_move1 = hash_move;
+		}
+	}
+
+	// Player 1 regrets playing or second player hasn't made their move.
+	function get_refund() {
+		if (hashed_move1 != 0 && hashed_move2 == 0
+			&& addr1 == msg.sender) {
+			addr1.send(reward);
 		}
 	}
 
@@ -67,19 +76,6 @@ contract RockPaperScissors {
 			claim_timer = now + 86400;
 		}
 
-		// In the cases below we prevent someone calling the claim_reward
-		// by setting claim_timer to zero.
-
-		// Player 2 reveals, but player 1 hasn't made their move.
-		if (hashed_move1 == 0 && move2 != 0) {
-			claim_timer = 0;
-			addr2.transfer(this.balance);
-		}
-		// Player 1 reveals, but player 1 hasn't made their move.
-		if (hashed_move2 == 0 && move1 != 0) {
-			claim_timer = 0;
-			addr1.transfer(this.balance);
-		}
 		// Both players played. Determine the winner.
 		if (move1 != 0 && move2 != 0) {
 			claim_timer = 0;

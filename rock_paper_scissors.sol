@@ -19,7 +19,7 @@ contract RockPaperScissors {
 	// Fixed reward is 10 million wei. Yeap. It's a lot.
 	uint reward = 10000000;
 	uint claim_timer;
-	bool revealed_answer;
+	bool revealed_move;
 	mapping (string => mapping (string => uint8)) game_verdict;
 
 	// Initialise contract. Initialize gaming scenarios.
@@ -41,7 +41,7 @@ contract RockPaperScissors {
 
 	// The player provides a hash_move. The game fee is also paid.
 	function move(bytes32 hash_move) public payable {
-		require (!revealed_answer);
+		require (!revealed_move);
 		require (msg.value >= reward);
 		require (hash_move != 0);
 
@@ -85,7 +85,7 @@ contract RockPaperScissors {
 			determine_winner(game_verdict[move1][move2]);
 		}
 
-		if (valid_reveal) revealed_answer = true;
+		if (valid_reveal) revealed_move = true;
 
 		return (valid_reveal, claim_timer);
 	}
@@ -135,5 +135,6 @@ contract RockPaperScissors {
 		hashed_move1 = bytes32(0);
 		hashed_move2 = bytes32(0);
 		claim_timer = 0;
+		revealed_move = false;
 	}
 }

@@ -56,14 +56,6 @@ contract RockPaperScissors {
 		}
 	}
 
-	// Player 1 regrets playing or second player hasn't made their move.
-	function get_refund() public {
-		if (hashed_move1 != 0 && hashed_move2 == 0
-			&& addr1 == msg.sender) {
-			addr1.transfer(reward);
-		}
-	}
-
 	// Require that both players have made their move.
 	// Returns true if the reveal was successful.
 	function reveal_move(string p_move, string h_key) public returns(bool, uint) {
@@ -78,6 +70,14 @@ contract RockPaperScissors {
 			valid_reveal = true;
 			move2 = p_move;
 			claim_timer = now + 1;
+		}
+
+		// Player 1 regrets playing or second player hasn't made their move.
+		if (hashed_move1 != 0 && hashed_move2 == 0
+			&& addr1 == msg.sender) {
+			addr1.transfer(reward);
+			restartgame();
+			return (false, 0);
 		}
 
 		if (!strempty(move1) && !strempty(move2)) {
